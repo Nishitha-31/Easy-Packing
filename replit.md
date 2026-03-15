@@ -16,6 +16,16 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Features
+
+### Suitcase Packing Solver (`artifacts/suitcase-packer`)
+A web interface for the 3D suitcase packing backtracking algorithm (C program).
+- Frontend: React + Vite at `/` (port 24360)
+- Backend: Express API at `/api/pack` (POST)
+- C binary compiled at `artifacts/api-server/c-src/packer` (source: `packer.c`)
+- Input: suitcase dimensions + list of item dimensions (up to 20 items)
+- Output: max items packed + coordinate positions of each item
+
 ## Structure
 
 ```text

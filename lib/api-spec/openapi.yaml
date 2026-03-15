@@ -1,6 +1,5 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: API specification
@@ -10,6 +9,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: packer
+    description: Suitcase packing operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /pack:
+    post:
+      operationId: packItems
+      tags: [packer]
+      summary: Pack items into suitcase
+      description: Runs the backtracking algorithm to pack items into suitcase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PackRequest"
+      responses:
+        "200":
+          description: Packing result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PackResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +65,73 @@ components:
           type: string
       required:
         - status
-
+    ItemDimension:
+      type: object
+      properties:
+        width:
+          type: integer
+          minimum: 1
+        breadth:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+      required:
+        - width
+        - breadth
+        - height
+    PackRequest:
+      type: object
+      properties:
+        suitcase:
+          $ref: "#/components/schemas/ItemDimension"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemDimension"
+          minItems: 1
+          maxItems: 20
+      required:
+        - suitcase
+        - items
+    PlacedItem:
+      type: object
+      properties:
+        itemIndex:
+          type: integer
+        bottomFrontLeft:
+          type: array
+          items:
+            type: integer
+          minItems: 3
+          maxItems: 3
+        topBackRight:
+          type: array
+          items:
+            type: integer
+          minItems: 3
+          maxItems: 3
+      required:
+        - itemIndex
+        - bottomFrontLeft
+        - topBackRight
+    PackResult:
+      type: object
+      properties:
+        maxItemsPacked:
+          type: integer
+        packedItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlacedItem"
+      required:
+        - maxItemsPacked
+        - packedItems
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

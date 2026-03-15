@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Suitcase Packing Solver"
+version = "1.0.0"
+id = "artifacts/suitcase-packer"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 24360
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/suitcase-packer run dev"
+
+[services.env]
+PORT = "24360"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/suitcase-packer", "run", "build"]
+publicDir = "artifacts/suitcase-packer/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

@@ -1,0 +1,16 @@
+packages:
+  "framer-motion": "For smooth entry animations of dynamic form rows and result lists"
+  "react-hook-form": "For robust form state management"
+  "@hookform/resolvers": "For integrating Zod validation with react-hook-form"
+  "zod": "For defining and coercing strict numeric schemas"
+  "clsx": "For conditional tailwind class merging"
+  "tailwind-merge": "For resolving tailwind class conflicts seamlessly"
+
+images:
+  - path: "artifacts/suitcase-packer/public/images/hero-bg.png"
+    description: "Subtle, minimalist abstract geometric background with soft slate and blue tones. Resembles 3D cubes or wireframe blocks fitting together loosely. High-key lighting, clean academic presentation style, lots of negative space."
+    aspect_ratio: "16:9"
+
+notes:
+  - "The hook usePackItems is directly imported from @workspace/api-client-react"
+  - "Using a single page architecture since it's a dedicated utility application"

@@ -8,3 +8,44 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface ItemDimension {
+  /** @minimum 1 */
+  width: number;
+  /** @minimum 1 */
+  breadth: number;
+  /** @minimum 1 */
+  height: number;
+}
+
+export interface PackRequest {
+  suitcase: ItemDimension;
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  items: ItemDimension[];
+}
+
+export interface PlacedItem {
+  itemIndex: number;
+  /**
+   * @minItems 3
+   * @maxItems 3
+   */
+  bottomFrontLeft: number[];
+  /**
+   * @minItems 3
+   * @maxItems 3
+   */
+  topBackRight: number[];
+}
+
+export interface PackResult {
+  maxItemsPacked: number;
+  packedItems: PlacedItem[];
+}
+
+export interface ErrorResponse {
+  error: string;
+}

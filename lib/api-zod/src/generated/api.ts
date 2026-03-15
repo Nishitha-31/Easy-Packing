@@ -14,3 +14,51 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Runs the backtracking algorithm to pack items into suitcase
+ * @summary Pack items into suitcase
+ */
+
+export const packItemsBodyItemsMax = 20;
+
+export const PackItemsBody = zod.object({
+  suitcase: zod.object({
+    width: zod.number().min(1),
+    breadth: zod.number().min(1),
+    height: zod.number().min(1),
+  }),
+  items: zod
+    .array(
+      zod.object({
+        width: zod.number().min(1),
+        breadth: zod.number().min(1),
+        height: zod.number().min(1),
+      }),
+    )
+    .min(1)
+    .max(packItemsBodyItemsMax),
+});
+
+export const packItemsResponsePackedItemsItemBottomFrontLeftMin = 3;
+export const packItemsResponsePackedItemsItemBottomFrontLeftMax = 3;
+
+export const packItemsResponsePackedItemsItemTopBackRightMin = 3;
+export const packItemsResponsePackedItemsItemTopBackRightMax = 3;
+
+export const PackItemsResponse = zod.object({
+  maxItemsPacked: zod.number(),
+  packedItems: zod.array(
+    zod.object({
+      itemIndex: zod.number(),
+      bottomFrontLeft: zod
+        .array(zod.number())
+        .min(packItemsResponsePackedItemsItemBottomFrontLeftMin)
+        .max(packItemsResponsePackedItemsItemBottomFrontLeftMax),
+      topBackRight: zod
+        .array(zod.number())
+        .min(packItemsResponsePackedItemsItemTopBackRightMin)
+        .max(packItemsResponsePackedItemsItemTopBackRightMax),
+    }),
+  ),
+});

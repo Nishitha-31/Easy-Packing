@@ -5,18 +5,26 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  ErrorResponse,
+  HealthStatus,
+  PackRequest,
+  PackResult,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -99,3 +107,90 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Runs the backtracking algorithm to pack items into suitcase
+ * @summary Pack items into suitcase
+ */
+export const getPackItemsUrl = () => {
+  return `/api/pack`;
+};
+
+export const packItems = async (
+  packRequest: PackRequest,
+  options?: RequestInit,
+): Promise<PackResult> => {
+  return customFetch<PackResult>(getPackItemsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(packRequest),
+  });
+};
+
+export const getPackItemsMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof packItems>>,
+    TError,
+    { data: BodyType<PackRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof packItems>>,
+  TError,
+  { data: BodyType<PackRequest> },
+  TContext
+> => {
+  const mutationKey = ["packItems"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof packItems>>,
+    { data: BodyType<PackRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return packItems(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PackItemsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof packItems>>
+>;
+export type PackItemsMutationBody = BodyType<PackRequest>;
+export type PackItemsMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Pack items into suitcase
+ */
+export const usePackItems = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof packItems>>,
+    TError,
+    { data: BodyType<PackRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof packItems>>,
+  TError,
+  { data: BodyType<PackRequest> },
+  TContext
+> => {
+  return useMutation(getPackItemsMutationOptions(options));
+};
