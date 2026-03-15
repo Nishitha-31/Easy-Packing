@@ -56,8 +56,10 @@ export default function Home() {
 
   const onSubmit = (data: FormValues) => {
     mutate({
-      suitcase: data.suitcase,
-      items: data.items,
+      data: {
+        suitcase: data.suitcase,
+        items: data.items,
+      },
     });
   };
 
