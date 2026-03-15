@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,7 +15,6 @@ const dimensionSchema = z.object({
 
 const formSchema = z.object({
   suitcase: dimensionSchema,
-  itemCount: z.coerce.number().int().min(1, "At least 1 item").max(20, "Maximum 20 items"),
   items: z.array(dimensionSchema).min(1).max(20),
 });
 
@@ -23,12 +22,12 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function Home() {
   const { mutate, data: result, isPending, error } = usePackItems();
+  const [itemCountInput, setItemCountInput] = useState("3");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       suitcase: { width: 20, breadth: 20, height: 20 },
-      itemCount: 3,
       items: [
         { width: 5, breadth: 5, height: 5 },
         { width: 10, breadth: 5, height: 5 },
@@ -37,40 +36,28 @@ export default function Home() {
     },
   });
 
-  const { control, handleSubmit, watch, formState: { errors } } = form;
+  const { control, handleSubmit, formState: { errors } } = form;
   const { fields, append, remove } = useFieldArray({
     control,
     name: "items",
   });
 
-  const desiredItemCount = watch("itemCount");
-
-  // Sync field array length with the desired item count smoothly
-  useEffect(() => {
-    const currentCount = fields.length;
-    const targetCount = Number(desiredItemCount) || 0;
-
-    if (targetCount > 0 && targetCount <= 20) {
-      if (targetCount > currentCount) {
-        const toAdd = targetCount - currentCount;
-        for (let i = 0; i < toAdd; i++) {
-          append({ width: 5, breadth: 5, height: 5 });
-        }
-      } else if (targetCount < currentCount) {
-        const toRemove = currentCount - targetCount;
-        for (let i = 0; i < toRemove; i++) {
-          remove(fields.length - 1);
-        }
-      }
+  // Only sync field array when user finishes typing (blur or Enter)
+  const applyItemCount = (value: string) => {
+    const n = parseInt(value, 10);
+    if (isNaN(n) || n < 1 || n > 20) return;
+    const current = fields.length;
+    if (n > current) {
+      for (let i = 0; i < n - current; i++) append({ width: 5, breadth: 5, height: 5 });
+    } else if (n < current) {
+      for (let i = current - 1; i >= n; i--) remove(i);
     }
-  }, [desiredItemCount, fields.length, append, remove]);
+  };
 
   const onSubmit = (data: FormValues) => {
-    // Trim items to exact count just in case of race conditions
-    const finalItems = data.items.slice(0, data.itemCount);
     mutate({
       suitcase: data.suitcase,
-      items: finalItems,
+      items: data.items,
     });
   };
 
@@ -128,22 +115,15 @@ export default function Home() {
                     Items Configuration
                   </h2>
                   <div className="w-24">
-                    <Controller
-                      control={control}
-                      name="itemCount"
-                      render={({ field }) => (
-                        <div className="relative">
-                          <input
-                            {...field}
-                            type="number"
-                            min="1"
-                            max="20"
-                            className={`w-full bg-secondary/50 border-2 px-3 py-1.5 rounded-xl text-center font-medium focus:outline-none focus:ring-4 transition-all ${
-                              errors.itemCount ? "border-destructive focus:border-destructive focus:ring-destructive/20" : "border-transparent focus:border-primary focus:ring-primary/20"
-                            }`}
-                          />
-                        </div>
-                      )}
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={itemCountInput}
+                      onChange={(e) => setItemCountInput(e.target.value)}
+                      onBlur={(e) => applyItemCount(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyItemCount(itemCountInput); } }}
+                      className="w-full bg-secondary/50 border-2 px-3 py-1.5 rounded-xl text-center font-medium focus:outline-none focus:ring-4 transition-all border-transparent focus:border-primary focus:ring-primary/20"
                     />
                   </div>
                 </div>
@@ -231,7 +211,7 @@ export default function Home() {
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Packed</div>
-                        <div className="text-xl font-bold text-foreground leading-none">{result.maxItemsPacked} <span className="text-sm font-normal text-muted-foreground">/ {desiredItemCount}</span></div>
+                        <div className="text-xl font-bold text-foreground leading-none">{result.maxItemsPacked} <span className="text-sm font-normal text-muted-foreground">/ {fields.length}</span></div>
                       </div>
                     </div>
                   </div>
