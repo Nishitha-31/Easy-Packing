@@ -63,6 +63,13 @@ function runPacker(input: string): Promise<string> {
   });
 }
 
+function parseCoords(line: string): number[] {
+  // Parses "Bottom-front-left: (x, y, z)" or "Top-back-right: (x, y, z)"
+  const match = line.match(/\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (!match) return [0, 0, 0];
+  return [parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10)];
+}
+
 function parsePackerOutput(output: string): {
   maxItemsPacked: number;
   packedItems: Array<{
@@ -71,23 +78,28 @@ function parsePackerOutput(output: string): {
     topBackRight: number[];
   }>;
 } {
-  const lines = output.trim().split("\n").filter((l) => l.trim() !== "");
+  const lines = output.split("\n").map((l) => l.trim()).filter((l) => l !== "");
   if (lines.length === 0) {
     return { maxItemsPacked: 0, packedItems: [] };
   }
 
-  const maxItemsPacked = parseInt(lines[0], 10);
-  const packedItems = [];
+  // Find "Maximum items packed: N"
+  let maxItemsPacked = 0;
+  for (const line of lines) {
+    const m = line.match(/Maximum items packed:\s*(\d+)/);
+    if (m) { maxItemsPacked = parseInt(m[1], 10); break; }
+  }
 
-  for (let i = 1; i < lines.length; i++) {
-    const nums = lines[i].trim().split(/\s+/).map(Number);
-    if (nums.length < 7) continue;
-    const [itemIndex, x1, y1, z1, x2, y2, z2] = nums;
-    packedItems.push({
-      itemIndex,
-      bottomFrontLeft: [x1, y1, z1],
-      topBackRight: [x2, y2, z2],
-    });
+  const packedItems = [];
+  for (let i = 0; i < lines.length; i++) {
+    const itemMatch = lines[i].match(/^Item\s+(\d+)$/);
+    if (itemMatch) {
+      const itemIndex = parseInt(itemMatch[1], 10);
+      const bfl = i + 1 < lines.length ? parseCoords(lines[i + 1]) : [0, 0, 0];
+      const tbr = i + 2 < lines.length ? parseCoords(lines[i + 2]) : [0, 0, 0];
+      packedItems.push({ itemIndex, bottomFrontLeft: bfl, topBackRight: tbr });
+      i += 2;
+    }
   }
 
   return { maxItemsPacked, packedItems };

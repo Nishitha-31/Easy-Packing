@@ -2,124 +2,169 @@
 
 #define MAX_ITEMS 20
 
-int suitcaseWidth, suitcaseBreadth, suitcaseHeight;
-int totalItems;
-
 typedef struct {
-    int width;
-    int breadth;
-    int height;
+    int w, b, h;
+    int volume;
 } Item;
 
 typedef struct {
-    int x, y, z;
-    int width, breadth, height;
-    int itemIndex;
+    int x1, y1, z1;
+    int x2, y2, z2;
 } Placement;
 
-Item itemList[MAX_ITEMS];
-Placement placedItems[MAX_ITEMS];
-Placement bestArrangement[MAX_ITEMS];
+Item items[MAX_ITEMS];
 
-int currentItemCount = 0;
-int bestItemCount = 0;
+Placement currentPlacement[MAX_ITEMS];
+Placement bestPlacement[MAX_ITEMS];
 
-int fitsInsideSuitcase(int x, int y, int z, Item item) {
-    if (x + item.width > suitcaseWidth) return 0;
-    if (y + item.breadth > suitcaseBreadth) return 0;
-    if (z + item.height > suitcaseHeight) return 0;
-    return 1;
-}
+int suitcaseW, suitcaseB, suitcaseH;
+int totalItems;
 
-int itemsOverlap(Placement a, Placement b) {
-    if (a.x >= b.x + b.width || b.x >= a.x + a.width)
-        return 0;
-    if (a.y >= b.y + b.breadth || b.y >= a.y + a.breadth)
-        return 0;
-    if (a.z >= b.z + b.height || b.z >= a.z + a.height)
-        return 0;
-    return 1;
-}
+int maxPacked = 0;
 
-int validPlacement(Placement newPlacement) {
-    for (int i = 0; i < currentItemCount; i++) {
-        if (itemsOverlap(newPlacement, placedItems[i]))
-            return 0;
-    }
-    return 1;
-}
+// Sort items by volume (descending)
+void sortItems() {
 
-void generateRotations(Item item, Item rotations[6]) {
-    rotations[0] = (Item){item.width, item.breadth, item.height};
-    rotations[1] = (Item){item.width, item.height, item.breadth};
-    rotations[2] = (Item){item.breadth, item.width, item.height};
-    rotations[3] = (Item){item.breadth, item.height, item.width};
-    rotations[4] = (Item){item.height, item.width, item.breadth};
-    rotations[5] = (Item){item.height, item.breadth, item.width};
-}
+    for (int i = 0; i < totalItems - 1; i++) {
+        for (int j = i + 1; j < totalItems; j++) {
 
-void packItems(int itemIndex) {
-    if (itemIndex == totalItems) {
-        if (currentItemCount > bestItemCount) {
-            bestItemCount = currentItemCount;
-            for (int i = 0; i < currentItemCount; i++)
-                bestArrangement[i] = placedItems[i];
+            if (items[i].volume < items[j].volume) {
+
+                Item temp = items[i];
+                items[i] = items[j];
+                items[j] = temp;
+            }
         }
-        return;
+    }
+}
+
+// Overlap check
+int isOverlap(Placement a, Placement b) {
+
+    if (a.x1 >= b.x2 || a.x2 <= b.x1)
+        return 0;
+
+    if (a.y1 >= b.y2 || a.y2 <= b.y1)
+        return 0;
+
+    if (a.z1 >= b.z2 || a.z2 <= b.z1)
+        return 0;
+
+    return 1;
+}
+
+// Collision check
+int checkCollision(int placedCount, Placement newBox) {
+
+    for (int i = 0; i < placedCount; i++) {
+
+        if (isOverlap(currentPlacement[i], newBox))
+            return 1;
     }
 
-    int remainingItems = totalItems - itemIndex;
-    if (currentItemCount + remainingItems <= bestItemCount)
+    return 0;
+}
+
+// Backtracking
+void packItems(int itemIndex, int packedCount) {
+
+    // Update best result
+    if (packedCount > maxPacked) {
+
+        maxPacked = packedCount;
+
+        for (int i = 0; i < packedCount; i++)
+            bestPlacement[i] = currentPlacement[i];
+    }
+
+    // Stop condition
+    if (itemIndex >= totalItems)
         return;
 
-    Item rotations[6];
-    generateRotations(itemList[itemIndex], rotations);
+    // PRUNING
+    if (packedCount + (totalItems - itemIndex) <= maxPacked)
+        return;
+
+    int rotations[6][3] = {
+        {items[itemIndex].w, items[itemIndex].b, items[itemIndex].h},
+        {items[itemIndex].w, items[itemIndex].h, items[itemIndex].b},
+        {items[itemIndex].b, items[itemIndex].w, items[itemIndex].h},
+        {items[itemIndex].b, items[itemIndex].h, items[itemIndex].w},
+        {items[itemIndex].h, items[itemIndex].w, items[itemIndex].b},
+        {items[itemIndex].h, items[itemIndex].b, items[itemIndex].w}
+    };
 
     for (int r = 0; r < 6; r++) {
-        Item rotatedItem = rotations[r];
-        for (int x = 0; x <= suitcaseWidth; x++) {
-            for (int y = 0; y <= suitcaseBreadth; y++) {
-                for (int z = 0; z <= suitcaseHeight; z++) {
-                    if (!fitsInsideSuitcase(x, y, z, rotatedItem))
-                        continue;
-                    Placement newPlacement;
-                    newPlacement.x = x;
-                    newPlacement.y = y;
-                    newPlacement.z = z;
-                    newPlacement.width = rotatedItem.width;
-                    newPlacement.breadth = rotatedItem.breadth;
-                    newPlacement.height = rotatedItem.height;
-                    newPlacement.itemIndex = itemIndex;
-                    if (!validPlacement(newPlacement))
-                        continue;
-                    placedItems[currentItemCount] = newPlacement;
-                    currentItemCount++;
-                    packItems(itemIndex + 1);
-                    currentItemCount--;
+
+        int w = rotations[r][0];
+        int b = rotations[r][1];
+        int h = rotations[r][2];
+
+        for (int x = 0; x <= suitcaseW - w; x++) {
+            for (int y = 0; y <= suitcaseB - b; y++) {
+                for (int z = 0; z <= suitcaseH - h; z++) {
+
+                    Placement newBox;
+
+                    newBox.x1 = x;
+                    newBox.y1 = y;
+                    newBox.z1 = z;
+
+                    newBox.x2 = x + w;
+                    newBox.y2 = y + b;
+                    newBox.z2 = z + h;
+
+                    if (!checkCollision(packedCount, newBox)) {
+
+                        currentPlacement[packedCount] = newBox;
+
+                        packItems(itemIndex + 1, packedCount + 1);
+                    }
                 }
             }
         }
     }
 
-    packItems(itemIndex + 1);
+    // Skip item
+    packItems(itemIndex + 1, packedCount);
 }
 
 int main() {
-    scanf("%d %d %d", &suitcaseWidth, &suitcaseBreadth, &suitcaseHeight);
-    scanf("%d", &totalItems);
-    for (int i = 0; i < totalItems; i++) {
-        scanf("%d %d %d", &itemList[i].width, &itemList[i].breadth, &itemList[i].height);
-    }
-    packItems(0);
 
-    printf("%d\n", bestItemCount);
-    for (int i = 0; i < bestItemCount; i++) {
-        Placement p = bestArrangement[i];
-        printf("%d %d %d %d %d %d %d %d %d %d\n",
-               p.itemIndex + 1,
-               p.x, p.y, p.z,
-               p.x + p.width, p.y + p.breadth, p.z + p.height,
-               p.width, p.breadth, p.height);
+    printf("Enter suitcase dimensions (width breadth height): ");
+    scanf("%d %d %d", &suitcaseW, &suitcaseB, &suitcaseH);
+
+    printf("Enter number of items: ");
+    scanf("%d", &totalItems);
+
+    for (int i = 0; i < totalItems; i++) {
+
+        printf("Enter dimensions of item %d (width breadth height): ", i + 1);
+        scanf("%d %d %d", &items[i].w, &items[i].b, &items[i].h);
+
+        items[i].volume = items[i].w * items[i].b * items[i].h;
     }
+
+    sortItems();
+
+    packItems(0, 0);
+
+    printf("\nMaximum items packed: %d\n", maxPacked);
+
+    for (int i = 0; i < maxPacked; i++) {
+
+        printf("\nItem %d\n", i + 1);
+
+        printf("Bottom-front-left: (%d, %d, %d)\n",
+               bestPlacement[i].x1,
+               bestPlacement[i].y1,
+               bestPlacement[i].z1);
+
+        printf("Top-back-right: (%d, %d, %d)\n",
+               bestPlacement[i].x2,
+               bestPlacement[i].y2,
+               bestPlacement[i].z2);
+    }
+
     return 0;
 }
