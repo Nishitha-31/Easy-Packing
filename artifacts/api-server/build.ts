@@ -2,6 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { build as esbuild } from "esbuild";
 import { rm, readFile } from "fs/promises";
+import { execSync } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,12 @@ const allowlist = [
 async function buildAll() {
   const distDir = path.resolve(__dirname, "dist");
   await rm(distDir, { recursive: true, force: true });
+
+  console.log("compiling C packer...");
+  const cSrc = path.resolve(__dirname, "c-src/packer.c");
+  const cBin = path.resolve(__dirname, "c-src/packer");
+  execSync(`gcc -O2 -o ${cBin} ${cSrc}`, { stdio: "inherit" });
+  console.log("C packer compiled.");
 
   console.log("building server...");
   const pkgPath = path.resolve(__dirname, "package.json");

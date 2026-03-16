@@ -1,11 +1,11 @@
 import { Router, type IRouter } from "express";
 import { spawn } from "child_process";
 import path from "path";
-import { fileURLToPath } from "url";
 import { PackItemsBody, PackItemsResponse } from "@workspace/api-zod";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PACKER_BIN = path.resolve(__dirname, "../../c-src/packer");
+// Works in both dev (ESM/tsx) and production (CJS bundle built by esbuild).
+// The server is always started from the workspace root, so cwd() is reliable.
+const PACKER_BIN = path.resolve(process.cwd(), "artifacts/api-server/c-src/packer");
 
 const router: IRouter = Router();
 
